@@ -18,6 +18,8 @@
  * [Create repository and pipeline on AWS codecommit](#Create-repository-and-pipeline-on-AWS-codecommit)
  * [Add pipeline stages to deploy CDK stacks](#Add-pipeline-stages-to-deploy-CDK-stacks)
  * [Push code to test pipelines](#Push-code-to-test-pipelines)
+ * [Test webapp](#Test-webapp)
+ * [Cleanup](#Cleanup)
  * [Conclusion](#Conclusion)
 
 ---
@@ -110,120 +112,64 @@
 - We now already have repository and pipeline, next steps we add `git remote origin` as our codecommit repo and then push code to `master` / `develop` branch in order to let the pipeline deploy the CDK application stacks.
 - Add remote origin
   ```
-  git remote add origin ssh://git-codecommit.ap-southeast-1.amazonaws.com/v1/repos/cdk-pipeline-test
-
-## 🚀 **Build Kyverno policy from code** <a name="Build-Kyverno-policy-from-code"></a>
-- Source code:
-  ```
-  ⚡ $ tree src/
-  src/
-  ├── imports
-  │   └── kyverno.io.ts
-  ├── kyverno-policies
-  │   ├── deny-delete-resources.ts
-  │   ├── kverno-list.ts
-  │   ├── kyvernoProps.ts
-  │   ├── require-app-labels.ts
-  │   ├── require-requests-limits.ts
-  │   └── require-runasnonroot.ts
-  ├── main.ts
-  └── test-yaml
-      ├── inflate-negative-test-deployment.yaml
-      └── inflate-positive-test-deployment.yaml
-
-  3 directories, 10 files
+  ⚡ $ git remote add origin ssh://git-codecommit.ap-southeast-1.amazonaws.com/v1/repos/cdk-pipeline-test
+  ⚡ $ git add -A
+  ⚡ $ git push origin master
   ```
 
-- Build
+- Check source code repo and pipeline
+
+  <img src=images/repo-commit.png width=1100>
+
+  <img src=images/pipeline.png width=1100>
+
+- Cloudformation check stacks
+
+  <img src=images/cfn-master.png width=1100>
+
+- Create `develop` branch and then push to deploy dev/test environment
   ```
-  ⚡ $ npx projen build
-  👾 build » default | ts-node --project tsconfig.dev.json .projenrc.ts
-  👾 build » compile | tsc --build
-  👾 build » post-compile » synth | cdk8s synth
-  No manifests synthesized
-  👾 build » test | jest --passWithNoTests --all --updateSnapshot
-  No tests found, exiting with code 0
-  ----------|---------|----------|---------|---------|-------------------
-  File      | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
-  ----------|---------|----------|---------|---------|-------------------
-  All files |       0 |        0 |       0 |       0 |
-  ----------|---------|----------|---------|---------|-------------------
-  👾 build » test » eslint | eslint --ext .ts,.tsx --fix --no-error-on-unmatched-pattern src test build-tools projenrc .projenrc.ts
+  ⚡ $ git checkout -b develop origin/master
+  ⚡ $ git push origin develop
   ```
 
-- Output yaml files
-  ```
-  ⚡ $ tree dist/
-  dist/
-  └── kyverno
-      ├── require-app-label-kyverno-policy.yaml
-      ├── require-request-limit-kyverno-policy.yaml
-      └── run-as-non-root-kyverno-policy.yaml
+  <img src=images/develop-pipeline.png width=1100>
 
-  1 directory, 3 files
-  ```
+## 🚀 **Test webapp** <a name="Test-webapp"></a>
+- Go to API GW stages and get the invoke url
 
-## 🚀 **Apply and test** <a name="Apply-and-test"></a>
-- Apply policies and check result
+  <img src=images/apigw.png width=1100>
+
+- Use `curl` to call API request
   ```
-  ⚡ $ kubectl apply -f dist/kyverno/
-  clusterpolicy.kyverno.io/require-app-label configured
-  clusterpolicy.kyverno.io/require-request-limit configured
-  clusterpolicy.kyverno.io/run-as-non-root configured
+  ⚡ $ curl https://5fbyi7ak9e.execute-api.ap-south-1.amazonaws.com/prod
+  Hello, CDK! You've hit /
+
+  ⚡ $ curl https://5fbyi7ak9e.execute-api.ap-south-1.amazonaws.com/prod/hello
+  Hello, CDK! You've hit /hello
   ```
 
-- Test negative, the deployment `inflate-negative-test-deployment.yaml` does not have resource limit and request and enable `runAsNonRoot`
-  ```
-  ⚡ $ kubectl apply -f src/test-yaml/inflate-negative-test-deployment.yaml
-  Error from server: error when creating "src/test-yaml/inflate-negative-test-deployment.yaml": admission webhook "validate.kyverno.svc-fail" denied the request:
+- Check DynamoDB for hit counter
 
-  policy Deployment/default/inflate-negative-test for resource violations:
+  <img src=images/ddb.png width=1100>
 
-  require-app-label: {}
-  require-request-limit:
-    autogen-require-request-limit: 'validation error: All containers must have CPU and
-      memory resource requests and limits defined. rule autogen-require-request-limit
-      failed at path /spec/template/spec/containers/0/resources/limits/'
-  ```
-
-- Test positive
-  ```
-  kubectl apply -f src/test-yaml/inflate-positive-test-deployment.yaml
-  deployment.apps/inflate-positive-test created
-  ```
-
-- Test without non-root user enabled, because the validation failure action is `AUDIT` so the deployment is applied successfully
-  ```
-  ⚡ $ kubectl apply -f src/test-yaml/inflate-without-nonroot-test-deployment.yaml
-  deployment.apps/inflate-without-nonroot-test created
-  ```
-
-- But let's view the policy violations
-  ```
-  ⚡ $ kubectl describe polr polr-ns-default | grep inflate -A15 -B10| grep "Result: \+fail" -B10
-      Seconds:  1661326749
-    Category:   Pod Security Standards
-    Message:    validation error: Containers must be required to run as non-root users. This policy ensures runAsNonRoot is set to true. rule autogen-run-as-non-root[0] failed at path /spec/template/spec/securityContext/runAsNonRoot/ rule autogen-run-as-non-root[1] failed at path /spec/template/spec/containers/0/securityContext/
-    Policy:     run-as-non-root
-    Resources:
-      API Version:  apps/v1
-      Kind:         Deployment
-      Name:         inflate-without-nonroot-test
-      Namespace:    default
-      UID:          b05068c1-425c-41f4-ae0f-c913100a1c9c
-    Result:         fail
-  ```
+## 🚀 **Cleanup** <a name="Cleanup"></a>
+- To clean up the stacks from this workshop, navigate to the Cloudformation Console, select your stacks, and hit “Delete”. This may take some time.
 
 ## 🚀 Conclusion <a name="Conclusion"></a>
-- Someone said `Kyverno policy as code` but the code in yaml language, it's not actual programming language.
-- Using CDK8S to generate Kyverno policy help to leverage the strong programming skill of developer and structure project more efficiently.
+- Teams now can use CDK to create/update infrastructure through cdk-pipeline without caring about the permission to run `cdk deploy`
+
+---
+
+References:
+- https://cdkworkshop.com/20-typescript.html
 
 ---
 
 <h3 align="center">
   <a href="https://dev.to/vumdao">:stars: Blog</a>
   <span> · </span>
-  <a href="https://github.com/vumdao/kyverno-policy-as-code-with-cdk8s/">Github</a>
+  <a href="https://github.com/vumdao/cdk-ts-pipeline-workshop/">Github</a>
   <span> · </span>
   <a href="https://stackoverflow.com/users/11430272/vumdao">stackoverflow</a>
   <span> · </span>
