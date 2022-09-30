@@ -26,6 +26,7 @@ export class CdkPipelineTest extends Stack {
             'npx projen synth',
           ],
         }),
+        useChangeSets: false
       });
       return _pipeline
     }
