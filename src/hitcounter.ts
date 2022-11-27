@@ -1,9 +1,9 @@
 import { join } from 'path';
+import { RemovalPolicy } from 'aws-cdk-lib';
 import { AttributeType, BillingMode, Table, TableEncryption } from 'aws-cdk-lib/aws-dynamodb';
 import { Function, IFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
-import { RemovalPolicy } from 'aws-cdk-lib';
 
 export interface HitCounterProps {
   /** the function for which we want to count url hits **/
@@ -22,7 +22,7 @@ export class HitCounter extends Construct {
       partitionKey: { name: 'path', type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
       encryption: TableEncryption.AWS_MANAGED,
-      removalPolicy: RemovalPolicy.DESTROY
+      removalPolicy: RemovalPolicy.DESTROY,
     });
 
     this.handler = new NodejsFunction(this, 'HitCounterHandler', {

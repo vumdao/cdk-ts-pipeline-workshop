@@ -26,25 +26,25 @@ export class CdkPipelineTest extends Stack {
             'npx projen synth',
           ],
         }),
-        useChangeSets: false
+        useChangeSets: false,
       });
-      return _pipeline
-    }
+      return _pipeline;
+    };
 
     const developPipeline = genPipeline(this, 'develop');
     developPipeline.addStage(new WorkshopPipelineStage(this, 'DeployDevelop', {
       env: {
         account: this.account,
-        region: DEV_REGION
-      }
+        region: DEV_REGION,
+      },
     }));
 
     const masterPipeline = genPipeline(this, 'master');
     masterPipeline.addStage(new WorkshopPipelineStage(this, 'DeployMaster', {
       env: {
         account: this.account,
-        region: PROD_REGION
-      }
+        region: PROD_REGION,
+      },
     }));
   }
 }

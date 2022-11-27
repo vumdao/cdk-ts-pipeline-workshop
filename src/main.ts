@@ -7,8 +7,8 @@ const app = new App();
 new CdkPipelineTest(app, 'CdkPipelineTest', {
   env: {
     account: CDK_DEFAULT_ACCOUNT,
-    region: DEV_REGION
-  }
+    region: DEV_REGION,
+  },
 });
 
 app.synth();

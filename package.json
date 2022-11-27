@@ -25,27 +25,28 @@
     "projen": "npx projen"
   },
   "devDependencies": {
-    "@types/jest": "^28.1.8",
+    "@types/jest": "^29.2.3",
     "@types/node": "^14",
     "@typescript-eslint/eslint-plugin": "^5",
     "@typescript-eslint/parser": "^5",
-    "aws-cdk": "^2.44.0",
+    "aws-cdk": "^2.51.1",
     "esbuild": "^0.15.5",
     "eslint": "^8",
     "eslint-import-resolver-node": "^0.3.6",
     "eslint-import-resolver-typescript": "^3.5.0",
     "eslint-plugin-import": "^2.26.0",
-    "jest": "^29.0.1",
+    "jest": "^29.3.1",
     "jest-junit": "^13",
     "json-schema": "^0.4.0",
-    "npm-check-updates": "^15",
-    "projen": "^0.61.30",
-    "ts-jest": "^28.0.8",
+    "npm-check-updates": "^16",
+    "projen": "^0.65.12",
+    "ts-jest": "^29.0.3",
     "ts-node": "^10.9.1",
     "typescript": "^4.8.2"
   },
   "dependencies": {
-    "aws-cdk-lib": "^2.44.0",
+    "aws-cdk-lib": "^2.51.1",
+    "cdk-nag": "^2.21.14",
     "constructs": "^10.0.5",
     "dotenv": "^16.0.1",
     "env-var": "^7.1.1"
@@ -53,6 +54,9 @@
   "license": "Apache-2.0",
   "version": "0.0.0",
   "jest": {
+    "moduleNameMapper": {
+      "^aws-cdk-lib/.warnings.jsii.js$": "<rootDir>/node_modules/aws-cdk-lib/.warnings.jsii.js"
+    },
     "testMatch": [
       "<rootDir>/src/**/__tests__/**/*.ts?(x)",
       "<rootDir>/(test|src)/**/*(*.)@(spec|test).ts?(x)"
